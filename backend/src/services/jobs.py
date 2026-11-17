@@ -4,8 +4,12 @@ from redis import Redis
 from src.config.settings import REDIS_URL
 from src.models import Dataset, Job
 from src.services.business import metadata
+from src.services import material
 def create(db, data, user):
-    if not db.get(Dataset,data.dataset_id): raise HTTPException(404,'数据批次不存在')
+    material.lock_gate(db)
+    dataset=db.get(Dataset,data.dataset_id)
+    if not dataset: raise HTTPException(404,'数据批次不存在')
+    material.guard_dataset(db, data.dataset_id)
     allowed={p['key']:p for p in metadata().get('parameters',[])}
     if set(data.params)-set(allowed): raise HTTPException(422,'包含未知分析参数')
     params={k:p['default'] for k,p in allowed.items()}

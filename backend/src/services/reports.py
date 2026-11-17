@@ -1,17 +1,33 @@
 import time, os, csv, io, hashlib, json
 from fastapi import HTTPException
 from src.models import Job, Report, Delivery
+from src.services import material
 from src.config.settings import ARTIFACT_DIR
 def create(db, data):
+    material.lock_gate(db)
     j=db.get(Job,data.job_id)
     if not j or j.status!='completed' or not j.approved:
         raise HTTPException(409,'请先选择已完成且获批准的分析结果')
+    material.guard_job(db, j)
     r=Report(name=data.name, job_id=j.id, destination=data.destination, interval_seconds=data.interval_seconds, next_run=time.time()+data.delay_seconds, enabled=True)
     db.add(r); db.flush()
     return r
+def deliverable(db, report):
+    """Deliver while sharing the material gate so a concurrent recall cannot slip
+    a stale snapshot out between the approval check and the file write."""
+    material.lock_gate(db)
+    if not report.enabled:
+        return None
+    return deliver(db, report)
+
+
 def deliver(db, report):
     j=db.get(Job,report.job_id)
-    if not j or not j.approved: return
+    if not j or not j.approved or j.recall_ticket_id or report.recall_ticket_id: return
+    ticket=material.dataset_under_recall(db, j.dataset_id)
+    if ticket:
+        report.enabled=False;report.recall_ticket_id=report.recall_ticket_id or ticket;report.recall_status='quarantined'
+        return
     out=io.StringIO()
     out.write('\ufeff')
     table=j.result.get('table',{})

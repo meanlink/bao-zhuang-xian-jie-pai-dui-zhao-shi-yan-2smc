@@ -1,4 +1,4 @@
-from sqlalchemy import String, JSON, Double
+from sqlalchemy import String, JSON, Double, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 from src.config.database import Base
 class Dataset(Base):
@@ -9,3 +9,5 @@ class Dataset(Base):
     records: Mapped[list] = mapped_column(JSON)
     checksum: Mapped[str] = mapped_column(String(64))
     created_at: Mapped[float] = mapped_column(Double)
+    recall_ticket_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    recall_status: Mapped[str] = mapped_column(String(20), default='')

@@ -1,4 +1,4 @@
-from sqlalchemy import String, Double, ForeignKey, Boolean
+from sqlalchemy import String, Double, ForeignKey, Boolean, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 from src.config.database import Base
 class Report(Base):
@@ -10,6 +10,8 @@ class Report(Base):
     interval_seconds: Mapped[int]
     next_run: Mapped[float] = mapped_column(Double)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    recall_ticket_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    recall_status: Mapped[str] = mapped_column(String(20), default='')
 class Delivery(Base):
     __tablename__ = 'deliveries'
     id: Mapped[int] = mapped_column(primary_key=True)
